@@ -151,28 +151,6 @@ Actively engage in security training, exercises, and drills to build and maintai
 
 ---
 
-## 🎓 Recommended Certifications
-
-1. **CompTIA Security+** (Entry-Level)
-   - Duration: 2-3 months study
-   - Cost: $300-400
-   - Focus: Foundational cybersecurity knowledge
-   - [Study Guide](https://www.comptia.org/certifications/security)
-
-2. **GIAC Certified Incident Handler (GCIH)** (Intermediate)
-   - Duration: 4-6 months study
-   - Cost: $500-700 (course + exam)
-   - Focus: Incident response skills
-   - [Information](https://www.giac.org/certification/certified-incident-handler-gcih)
-
-3. **Certified Ethical Hacker (CEH)** (Advanced)
-   - Duration: 6-12 months study
-   - Cost: $500-1000
-   - Focus: Penetration testing and threat analysis
-   - [Information](https://www.eccouncil.org/programs/certified-ethical-hacker-ceh/)
-
----
-
 ## 🛠️ Essential Tools & Platforms
 
 ### SIEM & Monitoring Tools

@@ -117,6 +117,24 @@ Actively engage in security training, exercises, and drills to build and maintai
 
 ---
 
+## Practical Lab Module
+
+### [Virtual SOC Lab: Kali Linux, Metasploitable, and Security Onion](junior-soc-analyst-guide/08_Virtual_SOC_Lab/README.md)
+Build a local VirtualBox lab for SOC practice using Kali Linux, Metasploitable, and Security Onion.
+
+**Includes:**
+- Installation and setup documentation for all three VMs
+- Safe isolated networking guidance
+- Guided analyst practice activities
+- Understanding-check challenges to test your investigation skills
+
+**Lab Resources:**
+- [Installation and Setup Guide](junior-soc-analyst-guide/08_Virtual_SOC_Lab/01_Installation_Setup_Guide.md)
+- [Guided Practice Activities](junior-soc-analyst-guide/08_Virtual_SOC_Lab/02_Guided_Practice_Activities.md)
+- [Understanding Check Activities](junior-soc-analyst-guide/08_Virtual_SOC_Lab/03_Understanding_Check_Activities.md)
+
+---
+
 ## 📚 Learning Roadmap
 
 ### Month 1-2: Foundation Building

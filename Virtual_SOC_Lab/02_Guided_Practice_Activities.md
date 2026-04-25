@@ -4,6 +4,8 @@ These activities are written as SOC analyst practice, not as a penetration testi
 
 Use your own IP addresses in place of the placeholders.
 
+> Important: Use only private lab IP addresses on an isolated internal network or host-only network. Do not put the lab VMs on your host's production or internet-facing network, because upgrades and updates on the lab VMs can otherwise affect the host and surrounding systems.
+
 ---
 
 ## Activity 1: Build a Lab Asset Inventory
@@ -28,7 +30,7 @@ ifconfig
 ```
 
 4. In Security Onion, identify the management IP address and monitoring interface.
-5. Create a simple table in your notes:
+5. Create a simple table in your notes using the private/internal lab IP addresses only:
 
 | System | Role | IP Address | Notes |
 | --- | --- | --- | --- |

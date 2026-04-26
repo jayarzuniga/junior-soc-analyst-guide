@@ -20,19 +20,21 @@ Recommended simple setup:
 | --- | --- |
 | Host-only Adapter | Lets your host computer and VMs communicate without exposing the lab to the internet |
 | Internal Network | Keeps VM-to-VM traffic fully isolated inside VirtualBox |
-| NAT | Allows a VM to reach the internet for updates when needed |
+| NAT | Allows Kali to reach the internet for updates when needed |
 
-Suggested beginner design:
+Suggested beginner design for this guide:
 
-| VM | Adapter 1 | Adapter 2 |
-| --- | --- | --- |
-| Kali Linux | NAT | Host-only or Internal Network |
-| Metasploitable | Host-only or Internal Network | None |
-| Security Onion | NAT or Host-only for management | Host-only or Internal Network for monitoring |
+| VM | Adapter 1 | Adapter 2 | Adapter 3 |
+| --- | --- | --- | --- |
+| Kali Linux | NAT | Internal Network | Optional Host-only |
+| Metasploitable | Internal Network | None | None |
+| Security Onion | Host-only for web management | Internal Network for monitoring | None |
+
+This setup keeps Security Onion isolated for an Airgap EVAL home lab, gives your host computer a stable path to the Security Onion web UI, and still monitors the isolated Kali-to-Metasploitable lab network.
 
 Always use private internal IP addressing on the lab network. Do not use bridged networking to your physical LAN for the lab VMs, because updates or upgrades inside the lab can otherwise expose traffic or affect your host system.
 
-If your computer has limited RAM or CPU, use Host-only networking for all three VMs and keep only one activity running at a time.
+Security Onion does not need NAT for this Airgap EVAL lab. If you later decide to use Standard mode for online updates, add NAT temporarily, but keep Host-only as the management interface.
 
 ---
 
@@ -42,23 +44,35 @@ If your computer has limited RAM or CPU, use Host-only networking for all three 
 | --- | --- | --- | --- |
 | Kali Linux | 2 CPUs | 2-4 GB | 30+ GB |
 | Metasploitable | 1 CPU | 512 MB-1 GB | 8+ GB |
-| Security Onion | 4 CPUs | 8-12 GB minimum | 100+ GB recommended |
+| Security Onion 3 EVAL | 4 CPUs | 12 GB minimum, 16 GB better | 200 GB recommended |
 
-Security Onion is the heaviest VM. If your computer struggles, reduce other running apps, pause Kali when not needed, or use a smaller Security Onion evaluation install.
+Security Onion is the heaviest VM. If setup appears stuck on Elasticsearch-related commands, it may simply be initializing, but low memory or slow disk can make this take a long time. Give the VM 12-16 GB RAM if possible.
 
 ---
 
-## Step 1: Create a VirtualBox Host-only Network
+## Step 1: Create VirtualBox Lab Networks
 
 1. Open VirtualBox.
 2. Go to **File > Tools > Network Manager**.
 3. Open the **Host-only Networks** tab.
-4. Create a new host-only network if one does not already exist.
+4. Create a new host-only network if one does not already exist. This is for accessing the Security Onion web UI from your host.
 5. Example network:
    - IPv4 address: `192.168.56.1`
    - IPv4 network mask: `255.255.255.0`
    - DHCP server: enabled for beginner setup
 6. Save the network settings.
+7. Use an **Internal Network** name for lab traffic, such as:
+
+```text
+soc-lab
+```
+
+Use different IP ranges for management and lab traffic:
+
+| Network | Example Range | Purpose |
+| --- | --- | --- |
+| Host-only | `192.168.56.0/24` | Access Security Onion web UI from the host |
+| Internal Network `soc-lab` | `192.168.100.0/24` | Kali-to-Metasploitable lab traffic |
 
 Record the network name, such as `VirtualBox Host-Only Ethernet Adapter`.
 
@@ -85,7 +99,8 @@ Record the network name, such as `VirtualBox Host-Only Ethernet Adapter`.
 11. Shut down the VM.
 12. Configure networking:
    - Adapter 1: NAT
-   - Adapter 2: Host-only Adapter or Internal Network
+   - Adapter 2: Internal Network named `soc-lab`
+   - Optional Adapter 3: Host-only Adapter if you want Kali to open the Security Onion web UI
 13. Start Kali and log in.
 14. Open a terminal and confirm network details:
 
@@ -102,7 +117,7 @@ Record the Kali lab network IP address.
 nmcli con show
 ```
 
-You’ll see something like:
+You will see something like:
 
 ```text
 NAME                DEVICE
@@ -110,15 +125,11 @@ Wired connection 1  eth0
 ```
 
 ```bash
-nmcli con mod "Wired connection 1" ipv4.addresses 192.168.56.10/24
+nmcli con mod "Wired connection 1" ipv4.addresses 192.168.100.10/24
 nmcli con mod "Wired connection 1" ipv4.method manual
 ```
 
-(Optional gateway if needed)
-
-```bash
-nmcli con mod "Wired connection 1" ipv4.gateway 192.168.56.1
-```
+Do not set a gateway on the Internal Network adapter. Kali should use the NAT adapter for internet access.
 
 ```bash
 nmcli con down "Wired connection 1"
@@ -148,7 +159,7 @@ Metasploitable is normally provided as a prebuilt vulnerable virtual machine dis
 6. When asked for a hard disk, choose **Use an existing virtual hard disk file**.
 7. Select the extracted Metasploitable virtual disk.
 8. Configure networking:
-   - Adapter 1: Host-only Adapter or Internal Network
+   - Adapter 1: Internal Network named `soc-lab`
    - Do not use Bridged networking
 9. Start the VM.
 10. Log in using the credentials provided with your Metasploitable download.
@@ -158,7 +169,7 @@ Metasploitable is normally provided as a prebuilt vulnerable virtual machine dis
 ifconfig
 ```
 
-You’ll likely see `eth0`.
+You will likely see `eth0`.
 
 12. Make the IP permanent by editing the network config:
 
@@ -171,15 +182,15 @@ Replace the current content for `eth0` with:
 ```text
 auto eth0
 iface eth0 inet static
-    address 192.168.56.20
+    address 192.168.100.20
     netmask 255.255.255.0
 ```
 
 For your lab:
 
-- Kali → 192.168.56.10
-- Metasploitable → 192.168.56.20
-- Security Onion → 192.168.56.30
+- Kali Internal Network IP: `192.168.100.10`
+- Metasploitable Internal Network IP: `192.168.100.20`
+- Security Onion Host-only management IP: `192.168.56.30`
 
 13. Restart networking:
 ```bash
@@ -192,56 +203,74 @@ Record the Metasploitable IP address.
 
 ## Step 4: Install Security Onion
 
-Security Onion can be installed from an ISO. It needs more resources than the other two VMs.
+Security Onion can be installed from an ISO. This guide assumes Security Onion 3, such as:
+
+```text
+securityonion-3.0.0-20260331.iso
+```
+
+For this beginner home lab, use **Airgap EVAL** mode. Do not choose Standalone unless you have the extra memory and want a more production-like deployment.
 
 1. Open VirtualBox.
 2. Select **New**.
 3. Name the VM `Security-Onion`.
 4. Choose Linux 64-bit.
 5. Assign resources:
-   - Memory: 8-12 GB minimum
+   - Memory: 12 GB minimum, 16 GB better
    - CPU: 4 cores recommended
-   - Disk: 100 GB or more recommended
+   - Disk: 200 GB recommended
 6. Attach the Security Onion ISO to the virtual optical drive.
 7. Configure networking:
-   - Adapter 1: NAT or Host-only for management access
-   - Adapter 2: Host-only Adapter or Internal Network for monitoring
+   - Adapter 1: Host-only Adapter
+   - Adapter 2: Internal Network named `soc-lab`
+   - Make sure all enabled adapters have **Cable Connected** enabled
+   - On the Internal Network monitoring adapter, set **Promiscuous Mode** to **Allow All**
 8. Start the VM.
-9. Follow the installer prompts.
-10. Choose an evaluation or standalone style install if you are building a small practice lab.
-11. Assign static IP addresses for the lab, since the lab network typically does not use DHCP.
+9. Choose the CLI/no desktop install if you want to save resources. The analyst tools still run in the browser-based Security Onion Console.
+10. After the operating system installation completes, log in to the Security Onion terminal.
+11. If setup does not start automatically, run:
 
-    Example IP plan:
+```bash
+sudo SecurityOnion/setup/so-setup iso
+```
 
-    | VM | IP Address |
-    | --- | --- |
-    | Kali | 192.168.56.10 |
-    | Metasploitable | 192.168.56.20 |
-    | Security Onion | 192.168.56.30 |
+12. Use these setup choices:
 
-    Subnet: /24 (255.255.255.0)
+| Setup Question | Choose |
+| --- | --- |
+| Install type | Airgap |
+| Deployment type | EVAL |
+| Internet access | Not required for this lab |
+| Proxy | None |
+| Docker IP range | Default, unless it overlaps your lab network |
+| SOC telemetry | No/Disable for a private lab |
+| Admin email | A lab email is fine, such as `admin@example.local` |
+| Web interface access | Allow your analyst IP or lab subnet |
 
-    Set IP in Oracle Linux (Security Onion):
+13. When setup asks about network interfaces, use:
 
-    ```bash
-    nmcli con show
-    ```
+| Interface Purpose | Adapter | IP Mode |
+| --- | --- | --- |
+| Management / web UI | Host-only adapter | Static |
+| Monitor / sniffing | Internal Network adapter | No normal IP if setup allows; monitoring only |
 
-    Find the connection name (likely "Wired connection 1"), then run:
+For the Host-only management adapter, use an address in your Host-only range:
 
-    ```bash
-    nmcli con mod "Wired connection 1" ipv4.addresses 192.168.56.30/24
-    nmcli con mod "Wired connection 1" ipv4.method manual
-    nmcli con up "Wired connection 1"
-    ```
+```text
+Security Onion management IP: 192.168.56.30
+Netmask/CIDR: 24
+Gateway: leave blank unless setup requires one
+```
 
-    This sets the Security Onion management interface to the private lab IP address.
-11. During setup, identify:
-   - Management interface
-   - Monitoring interface
-   - Admin username and password
-12. After installation, log in to the Security Onion console.
-13. From your host or Kali browser, access the Security Onion web interface using the management IP address.
+14. If setup asks how to access the web interface, allow the system you will use as the analyst browser:
+   - Kali IP if you will browse from Kali
+   - Windows host-only IP, often `192.168.56.1`, if you will browse from the host
+   - A private lab subnet such as `192.168.56.0/24` only if that is your actual lab subnet
+
+Do not allow `0.0.0.0/0`.
+
+15. Wait for setup to finish. Elasticsearch-related steps can take 20-45 minutes or longer on slower systems.
+16. After installation, log in to the Security Onion console from an allowed browser.
 
 Example:
 
@@ -250,6 +279,20 @@ https://<security-onion-management-ip>
 ```
 
 Accept the local certificate warning if your browser shows one.
+
+If you cannot reach the web UI because the analyst IP was not allowed, run this on the Security Onion terminal:
+
+```bash
+sudo so-firewall includehost analyst <analyst-ip>
+```
+
+Example:
+
+```bash
+sudo so-firewall includehost analyst 192.168.56.1
+```
+
+If `so-firewall` is not found, setup probably has not completed yet.
 
 ---
 
@@ -265,6 +308,12 @@ From Kali, test whether Security Onion management is reachable:
 
 ```bash
 ping -c 4 <security-onion-management-ip>
+```
+
+If you did not add Kali to the Host-only network, test Security Onion management from your Windows host browser instead:
+
+```text
+https://<security-onion-management-ip>
 ```
 
 If ping does not work, check:
@@ -301,11 +350,12 @@ Lab Ready - Kali Metasploitable Security Onion Connected
 
 - [ ] Kali Linux installed
 - [ ] Metasploitable imported
-- [ ] Security Onion installed
+- [ ] Security Onion 3 installed in Airgap EVAL mode
 - [ ] Lab network created
 - [ ] Metasploitable isolated from internet
+- [ ] Security Onion Host-only management adapter configured
+- [ ] Security Onion Internal Network monitoring adapter configured with Promiscuous Mode set to Allow All
 - [ ] IP addresses recorded
 - [ ] Kali can reach Metasploitable
 - [ ] Security Onion web interface is accessible
 - [ ] Clean snapshots created
-

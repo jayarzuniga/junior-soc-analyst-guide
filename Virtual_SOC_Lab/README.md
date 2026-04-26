@@ -6,7 +6,7 @@ This folder documents how to build a small local SOC practice lab using:
 
 - Kali Linux as the analyst and testing workstation
 - Metasploitable as the intentionally vulnerable target system
-- Security Onion as the monitoring, detection, and investigation platform
+- Security Onion 3 EVAL in Airgap mode as the monitoring, detection, and investigation platform
 
 The goal is to practice how a Junior SOC Analyst observes activity, reviews alerts, investigates evidence, documents findings, and explains risk.
 
@@ -28,9 +28,16 @@ Recommended network layout:
 
 | Virtual Machine | Role | Recommended Network |
 | --- | --- | --- |
-| Kali Linux | Analyst/testing workstation | Internal Network or Host-only |
-| Metasploitable | Vulnerable target | Internal Network or Host-only |
-| Security Onion | Monitoring platform | Management adapter plus monitoring adapter |
+| Kali Linux | Analyst/testing workstation | NAT plus Internal Network |
+| Metasploitable | Vulnerable target | Internal Network only |
+| Security Onion | Monitoring platform | Host-only management plus Internal Network monitoring |
+
+Recommended IP ranges:
+
+| Network | Example Range | Purpose |
+| --- | --- | --- |
+| Host-only | `192.168.56.0/24` | Access Security Onion Console from the host |
+| Internal Network | `192.168.100.0/24` | Isolated lab traffic between Kali and Metasploitable |
 
 Keep the vulnerable Metasploitable VM away from the public internet. It is intentionally insecure and should only be used inside a controlled lab.
 
@@ -45,4 +52,3 @@ Keep the vulnerable Metasploitable VM away from the public internet. It is inten
 - Building an investigation timeline
 - Writing SOC-style notes
 - Answering scenario questions without step-by-step instructions
-
